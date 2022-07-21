@@ -8,15 +8,16 @@ import (
 	"encoding/json"
 	"strconv"
 	"math/rand"
+	"time"
 	"github.com/gorilla/mux"
 
 )
 
 type Tasks struct{
-	ID string `json:"id"`
-	TaskName string `json:"task_name"`
+	ID          string `json:"id"`
+	TaskName    string `json:"task_name"`
 	TaskDetails string `json:"task_details"`
-	Date string `json:"date"`
+	Date        string `json:"date"`
 }
 var tasks[]Tasks
 func homePage (w http.ResponseWriter, r *http.Request){
@@ -30,10 +31,12 @@ func homePage (w http.ResponseWriter, r *http.Request){
 	
 	func getTask(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		taskId := mux.Vars(r)
+		params := mux.Vars(r)
+		
+		fmt.Println(params["id"])
 		flag := false
 		for i := 0; i < len(tasks); i++ {
-			if taskId["id"] == tasks[i].ID {
+			if params["id"] == tasks[i].ID {
 				json.NewEncoder(w).Encode(tasks[i])
 				flag = true
 				break
@@ -42,6 +45,7 @@ func homePage (w http.ResponseWriter, r *http.Request){
 		if !flag {
 			json.NewEncoder(w).Encode(map[string]string{"status": "Error"})
 		}
+		
 	}
 	
 	func createTask(w http.ResponseWriter, r *http.Request) {
@@ -49,6 +53,8 @@ func homePage (w http.ResponseWriter, r *http.Request){
 		var task Tasks
 		_ = json.NewDecoder(r.Body).Decode(&task)
 		task.ID = strconv.Itoa(rand.Intn(1000))
+		currentTime := time.Now().Format("01-02-2006")
+		task.Date = currentTime
 		tasks = append(tasks, task)
 		json.NewEncoder(w).Encode(task)
 	}
@@ -58,7 +64,27 @@ func homePage (w http.ResponseWriter, r *http.Request){
 	}
 	
 	func updateTask (w http.ResponseWriter, r *http.Request){
-		
+		w.Header().Set("Content-Type", "application/json")
+		params := mux.Vars(r)
+		flag := false
+		for index, item := range tasks {
+			if item.ID == params["id"]{
+				
+				tasks = append(tasks[:index], tasks[index+1:]...)
+				var task Tasks
+				_= json.NewDecoder(r.Body).Decode(&task)
+				task.ID = params["id"]
+				currentTime := time.Now().Format("01-02-2006")
+		task.Date = currentTime
+				tasks = append(tasks, task)
+				flag = true
+				json.NewEncoder(w).Encode(task)
+				return
+			}
+		}
+		if flag == false{
+			json.NewEncoder(w).Encode(map[string]string{"status": "Error"})
+		}
 	}
 		
 		
@@ -93,10 +119,11 @@ func handleRoute(){
 	route := mux.NewRouter()
 	route.HandleFunc("/", homePage).Methods("GET")
 	route.HandleFunc("/gettasks", getTasks).Methods("GET")
-	route.HandleFunc("/gettask/{id}", getTask).Methods("GET")
+	route.HandleFunc("/gettask/", getTask).Queries("id", "{id}").Methods("GET")
 	route.HandleFunc("/create", createTask).Methods("POST")
 	route.HandleFunc("/delete/{id}", deleteTask).Methods("DELETE")
-	route.HandleFunc("/update/{id}", updateTask).Methods("PUT")
+	route.HandleFunc("/update/", updateTask).Queries("id", "{id}").Methods("PUT")
+
 	log.Fatal(http.ListenAndServe(":8082", route))
 }
 func main()  {
