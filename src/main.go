@@ -60,7 +60,20 @@ func homePage (w http.ResponseWriter, r *http.Request){
 	}
 	
 	func deleteTask (w http.ResponseWriter, r *http.Request){
-		
+		w.Header().Set("Content-Type", "application/json")
+		params := mux.Vars(r)
+		flag := false
+		for index, item := range tasks {
+			if item.ID == params["id"]{	
+				tasks = append(tasks[:index], tasks[index+1:]...)
+				flag = true
+				json.NewEncoder(w).Encode(map[string]string{"status": "Success"})
+				return
+			}
+		}
+		if flag == false{
+			json.NewEncoder(w).Encode(map[string]string{"status": "Error"})
+		}
 	}
 	
 	func updateTask (w http.ResponseWriter, r *http.Request){
@@ -100,14 +113,14 @@ func allTasks(){
 	tasks = append(tasks, task)
 	fmt.Println("your tasks are", tasks)
 
-	task1 := Tasks{
-		ID: "2",
-		TaskName: "Power project",
-		TaskDetails: "We need to hire staffs before deadline",
+	taskss := Tasks{
+		ID: "1",
+		TaskName: "New Flutter",
+		TaskDetails: "You must lead the project and finish it",
 		Date: "2022-01-22",
 	}
 
-	tasks = append(tasks, task1)
+	tasks = append(tasks, taskss)
 	fmt.Println("your tasks are", tasks)
 }
 
@@ -121,7 +134,7 @@ func handleRoute(){
 	route.HandleFunc("/gettasks", getTasks).Methods("GET")
 	route.HandleFunc("/gettask/", getTask).Queries("id", "{id}").Methods("GET")
 	route.HandleFunc("/create", createTask).Methods("POST")
-	route.HandleFunc("/delete/{id}", deleteTask).Methods("DELETE")
+	route.HandleFunc("/delete/", deleteTask).Queries("id", "{id}").Methods("DELETE")
 	route.HandleFunc("/update/", updateTask).Queries("id", "{id}").Methods("PUT")
 
 	log.Fatal(http.ListenAndServe(":8082", route))
